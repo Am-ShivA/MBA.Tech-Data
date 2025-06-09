@@ -357,7 +357,6 @@ def load_batch_data(batch):
     
     # Standardize column names using the function from create_database.py
     df = standardize_columns(df)
-    df.columns = [col.strip().replace('_', ' ').title() for col in df.columns]
     
     conn.close()
     return df

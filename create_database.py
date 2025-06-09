@@ -14,24 +14,61 @@ def get_db_path():
 
 def standardize_columns(df):
     """Standardize column names across different Excel files"""
+    # Keys are common variations found in Excel, values are the desired standardized names.
+    # All keys will be normalized (stripped, no spaces/dots, uppercase) for robust matching.
+    # All values are the exact desired column names after standardization.
     column_mapping = {
         'ROLL NO.': 'Roll No.',
         'ROLL NO': 'Roll No.',
+        'SAP ID': 'Sap Id',
+        'SAPID': 'Sap Id',
+        'NAME': 'Name',
+        'BRANCH': 'Branch',
+        'CAMPUS': 'Campus',
+        'DIV': 'Div',
+        'MIP COMPANY': 'Mip Company',
+        'MAJOR': 'Major',
+
+        # Variations for Contact Number
         'CONTACT NO.': 'Contact No.',
         'CONTACT NO': 'Contact No.',
-        'NMIMS EMAIL ID': 'NMIMS Email',
-        'NMIMS EMAIL': 'NMIMS Email',
-        'NAME': 'NAME',
-        'BRANCH': 'BRANCH',
-        'CAMPUS': 'CAMPUS',
-        'Div': 'Div',
-        'MIP Company': 'Mip Company',
-        'Major': 'Major',
-        'SAP ID': 'SAP ID'
+        'CONTACT NUMBER': 'Contact No.',
+        'Contact No': 'Contact No.',
+        'Contact Number': 'Contact No.',
+        'CONTACTNUMBER': 'Contact No.',
+        'MOBILE NO': 'Contact No.',
+        'MOBILE NUMBER': 'Contact No.',
+        'PHONE': 'Contact No.',
+        'PHONE NO': 'Contact No.',
+        'PHONE NUMBER': 'Contact No.',
+        'CELL NO': 'Contact No.',
+        'CELL NUMBER': 'Contact No.',
+
+        # Variations for NMIMS Email
+        'NMIMS EMAIL ID': 'Nmims Email',
+        'NMIMS EMAIL': 'Nmims Email',
+        'NMIMS Email ID': 'Nmims Email',
+        'NMIMS Email': 'Nmims Email',
+        'Email': 'Nmims Email',
+        'EMAIL': 'Nmims Email',
+        'E-MAIL': 'Nmims Email',
+        'STUDENT EMAIL': 'Nmims Email',
+        'OFFICIAL EMAIL': 'Nmims Email',
     }
-    
-    # Rename columns based on mapping
-    df = df.rename(columns=column_mapping)
+
+    # Create a reverse mapping for efficient lookup after normalization
+    normalized_mapping = {key.strip().replace(' ', '').replace('.', '').replace('-', '').upper(): value for key, value in column_mapping.items()}
+
+    new_columns = {}
+    for col in df.columns:
+        normalized_col = col.strip().replace(' ', '').replace('.', '').replace('-', '').upper()
+        if normalized_col in normalized_mapping:
+            new_columns[col] = normalized_mapping[normalized_col]
+        else:
+            # If not explicitly mapped, try to title case it.
+            new_columns[col] = col.strip().replace('_', ' ').title()
+
+    df = df.rename(columns=new_columns)
     return df
 
 def create_database():
