@@ -23,6 +23,9 @@ if 'login_attempts' not in st.session_state:
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
+MAIN_PASSWORD = "placecom"
+CONTACT_PASSWORD = "svkm@nmims"
+
 def check_main_password():
     """Main password authentication system"""
     if st.session_state.login_attempts >= 3:
@@ -46,7 +49,7 @@ def check_main_password():
         password = st.text_input("Enter Password", type="password", key="main_password")
         
         if st.button("Login"):
-            if password == "placecom":
+            if password == MAIN_PASSWORD:
                 st.session_state.authenticated = True
                 st.session_state.login_attempts = 0
                 st.rerun()
@@ -238,7 +241,7 @@ def check_password():
 
     def password_entered():
         """Checks whether a password entered by the user is correct."""
-        if st.session_state["password"] == "svkm@nmims":  # Updated password
+        if st.session_state["password"] == CONTACT_PASSWORD:  # Updated password
             st.session_state["password_correct"] = True
             del st.session_state["password"]  # Don't store the password
         else:
@@ -1849,11 +1852,11 @@ def create_contact_info_analysis(df):
         
         with col1:
             st.write("Email Information")
-            st.dataframe(campus_email_pct.round(2).map(lambda x: f"{x}%"), use_container_width=True)
+            st.dataframe(campus_email_pct.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
         
         with col2:
             st.write("Contact Information")
-            st.dataframe(campus_contact_pct.round(2).map(lambda x: f"{x}%"), use_container_width=True)
+            st.dataframe(campus_contact_pct.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
 
 # Load and display data based on selection
 if batch:
