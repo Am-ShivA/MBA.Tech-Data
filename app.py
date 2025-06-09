@@ -607,8 +607,7 @@ def create_advanced_analytics(df, has_major=True):
         
         display_secure_dataframe(branch_comparison)
     
-    tab_index = 2 if has_major else 1
-    with st.tabs(["Career and Placement Insights"])[tab_index]:
+    with st.expander("Career and Placement Insights"):
         st.write("#### Career and Placement Insights")
         
         # Mip Company distribution by Branch and Campus
