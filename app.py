@@ -241,12 +241,53 @@ def display_secure_dataframe(df, use_container_width=True, hide_index=True):
             ) for col in df.columns}  # Set consistent column widths
         }
     )
+    return "*** *** ****"
 
 # Function to mask contact numbers
 def mask_contact_number(contact):
     if pd.isna(contact) or contact == "Not Assigned":
         return contact
     return "*** *** ****"
+
+def create_subject_trend_analysis(df, semester):
+    """
+    Analyze subject enrollment trends for a specific semester
+    """
+    st.write(f"### Subject Enrollment Trends - {semester}")
+    
+    # Get all subject columns for the semester
+    subject_cols = [col for col in df.columns if col.startswith(f"Sub {semester}")]
+    
+    # Create a long format dataframe for all subjects
+    all_subjects_data = pd.DataFrame()
+    for sub in subject_cols:
+        sub_counts = df[sub].value_counts().reset_index()
+        sub_counts.columns = ["Subject", "Count"]
+        sub_counts["Subject Code"] = sub
+        all_subjects_data = pd.concat([all_subjects_data, sub_counts])
+    
+    # Sort by count to get most popular subjects
+    all_subjects_data = all_subjects_data.sort_values("Count", ascending=False)
+    
+    # Create bar chart
+    fig = px.bar(
+        all_subjects_data,
+        x="Subject",
+        y="Count",
+        color="Subject Code",
+        title=f"Subject Enrollment Distribution - {semester}",
+        labels={"Subject": "Subject Name", "Count": "Number of Students"}
+    )
+    fig.update_layout(
+        xaxis_tickangle=-45,
+        height=600,
+        showlegend=True
+    )
+    display_plotly_chart(fig)
+    
+    # Display detailed statistics
+    st.write("#### Detailed Subject Statistics")
+    display_secure_dataframe(all_subjects_data)
 
 # Function to check password
 def check_password():
@@ -452,98 +493,31 @@ def create_subject_enrollment_analysis(df, semester):
 
 def create_combined_distribution_analysis(df, has_major=True):
     """
-    Create a combined distribution analysis showing multiple metrics in a single view
+    Creates combined distribution analysis for major and company.
     """
-    st.write("### Combined Distribution Analysis")
-    print("Columns in DataFrame:", df.columns)
-    
-    # Create subplots with appropriate layout based on available data
+    # Distribution by Major (if major column exists)
     if has_major:
-        fig = make_subplots(
-            rows=2, cols=2,
-            subplot_titles=("Campus Distribution", "Branch Distribution", 
-                           "Major Distribution", "Mip Company Distribution"),
-            specs=[[{"type": "pie"}, {"type": "bar"}],
-                  [{"type": "pie"}, {"type": "bar"}]]
-        )
-    else:
-        fig = make_subplots(
-            rows=2, cols=2,
-            subplot_titles=("Campus Distribution", "Branch Distribution", 
-                           "Division Distribution", "Mip Company Distribution"),
-            specs=[[{"type": "pie"}, {"type": "bar"}],
-                  [{"type": "pie"}, {"type": "bar"}]]
-        )
-    
-    # Campus Distribution (Pie Chart)
-    campus_counts = df["Campus"].value_counts()
-    fig.add_trace(
-        go.Pie(labels=campus_counts.index, values=campus_counts.values, hole=0.4),
-        row=1, col=1
-    )
-    
-    # Branch Distribution (Bar Chart)
-    branch_counts = df["Branch"].value_counts()
-    fig.add_trace(
-        go.Bar(x=branch_counts.index, y=branch_counts.values, text=branch_counts.values,
-               textposition='auto'),
-        row=1, col=2
-    )
-    
-    if has_major:
-        # Major Distribution (Pie Chart)
-        major_counts = df["Major"].value_counts()
-        fig.add_trace(
-            go.Pie(labels=major_counts.index, values=major_counts.values, hole=0.4),
-            row=2, col=1
-        )
-    else:
-        # Division Distribution (Pie Chart)
-        div_counts = df["Div"].value_counts()
-        fig.add_trace(
-            go.Pie(labels=div_counts.index, values=div_counts.values, hole=0.4),
-            row=2, col=1
-        )
-    
-    # Mip Company Distribution (Top 10 Bar Chart)
-    company_counts = df["Mip Company"].value_counts().head(10)
-    fig.add_trace(
-        go.Bar(x=company_counts.index, y=company_counts.values, text=company_counts.values,
-               textposition='auto'),
-        row=2, col=2
-    )
-    
-    fig.update_layout(height=800, showlegend=False)
-    display_plotly_chart(fig)
+        st.write("### Major Distribution")
+        create_distribution_analysis(df, "Major", "Major Distribution")
+
+    # Distribution by Mip Company (if Mip Company column exists)
+    st.write("### Mip Company Distribution")
+    create_distribution_analysis(df, "Mip Company", "Mip Company Distribution")
 
 def create_advanced_analytics(df, has_major=True):
     """
-    Create advanced analytics including correlations and patterns
+    Creates advanced analytics and visualizations based on the filtered data.
     """
     st.write("### Advanced Analytics")
-    
-    # Create tabs for different advanced analyses
-    if has_major:
-        tabs = st.tabs(["Subject Combinations", "Campus Insights", "Career Trends"])
-    else:
-        tabs = st.tabs(["Campus Insights", "Career Trends"])
-    
-    if has_major:
-        with tabs[0]:
-            st.write("#### Popular Subject Combinations")
-            
-            # Analyze common subject combinations for Semester 9
-            s9_subjects = [col for col in df.columns if col.startswith("Sub S9")]
-            s9_combinations = df[s9_subjects].value_counts().head(10)
-            
-            st.write("Top Subject Combinations (Semester 9)")
-            combo_df = pd.DataFrame(s9_combinations).reset_index()
-            combo_df.columns = ['Subject 1', 'Subject 2', 'Subject 3', 'Subject 4', 
-                              'Subject 5', 'Subject 6', 'Subject 7', 'Count']
-            st.dataframe(combo_df, hide_index=True)
-    
-    tab_index = 1 if has_major else 0
-    with tabs[tab_index]:
+
+    st.subheader("Major-Company Cross-Tabulation")
+    create_cross_tab_analysis(df, "Major", "Mip Company", "Major vs. Mip Company Cross-Tabulation")
+
+    st.subheader("Campus-Major Cross-Tabulation")
+    create_cross_tab_analysis(df, "Campus", "Major", "Campus vs. Major Cross-Tabulation")
+
+    # Campus Insights
+    with st.expander("Campus Insights"):
         st.write("#### Campus-wise Analysis")
         
         if has_major:
@@ -635,7 +609,7 @@ def create_advanced_analytics(df, has_major=True):
         display_secure_dataframe(branch_comparison)
     
     tab_index = 2 if has_major else 1
-    with tabs[tab_index]:
+    with st.tabs(["Career and Placement Insights"])[tab_index]:
         st.write("#### Career and Placement Insights")
         
         # Mip Company distribution by Branch and Campus
@@ -1542,46 +1516,6 @@ def create_contact_info_analysis(df):
         with col2:
             st.write("Contact Information")
             st.dataframe(campus_contact_pct.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
-
-def create_subject_trend_analysis(df, semester):
-    """
-    Analyze subject enrollment trends for a specific semester
-    """
-    st.write(f"### Subject Enrollment Trends - {semester}")
-    
-    # Get all subject columns for the semester
-    subject_cols = [col for col in df.columns if col.startswith(f"Sub {semester}")]
-    
-    # Create a long format dataframe for all subjects
-    all_subjects_data = pd.DataFrame()
-    for sub in subject_cols:
-        sub_counts = df[sub].value_counts().reset_index()
-        sub_counts.columns = ["Subject", "Count"]
-        sub_counts["Subject Code"] = sub
-        all_subjects_data = pd.concat([all_subjects_data, sub_counts])
-    
-    # Sort by count to get most popular subjects
-    all_subjects_data = all_subjects_data.sort_values("Count", ascending=False)
-    
-    # Create bar chart
-    fig = px.bar(
-        all_subjects_data,
-        x="Subject",
-        y="Count",
-        color="Subject Code",
-        title=f"Subject Enrollment Distribution - {semester}",
-        labels={"Subject": "Subject Name", "Count": "Number of Students"}
-    )
-    fig.update_layout(
-        xaxis_tickangle=-45,
-        height=600,
-        showlegend=True
-    )
-    display_plotly_chart(fig)
-    
-    # Display detailed statistics
-    st.write("#### Detailed Subject Statistics")
-    display_secure_dataframe(all_subjects_data)
 
 # Load and display data based on selection
 if batch:
