@@ -291,6 +291,7 @@ def load_batch_data(batch):
             # Standardize column names for MBA.Tech '25
             if batch == "MBA.Tech '25":
                 column_mapping = {
+                    'NMIMS Email': 'NMIMS Email ID',
                     'ROLL NO.': 'Roll Number'
                 }
                 df.rename(columns=column_mapping, inplace=True)
