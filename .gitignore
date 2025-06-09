@@ -2,8 +2,8 @@
 *.xlsx
 *.xls
 
-# SQLite database
-*.db
+# SQLite database (commenting out to allow database file)
+# *.db
 
 # Python
 __pycache__/

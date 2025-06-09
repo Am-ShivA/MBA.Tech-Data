@@ -1,6 +1,47 @@
 # MBA.Tech Data Viewer
 
-A secure and interactive data visualization application for MBA.Tech batch data analysis.
+A Streamlit application for viewing and analyzing MBA.Tech student data.
+
+## Setup Instructions
+
+1. **Local Development**:
+   - Keep your Excel files (`MBA.Tech 23.xlsx`, `MBA.Tech 24.xlsx`, `MBA.Tech 25.xlsx`) on your local computer
+   - Run `create_database.py` to create the SQLite database:
+     ```bash
+     python create_database.py
+     ```
+   - This will create `mba_tech_data.db` containing all your data
+
+2. **Running Locally**:
+   - Install requirements:
+     ```bash
+     pip install -r requirements.txt
+     ```
+   - Run the Streamlit app:
+     ```bash
+     streamlit run app.py
+     ```
+
+3. **Deployment to Streamlit Cloud**:
+   - The `mba_tech_data.db` file is included in the repository
+   - Excel files are not included for security
+   - Deploy to Streamlit Cloud using Python 3.10
+
+## Security Notes
+
+- Excel files are kept local and not uploaded to GitHub
+- Data is stored in SQLite database format
+- The database file is included in the repository for deployment
+- Users can only access the data through the Streamlit interface
+
+## Files
+
+- `app.py`: Main Streamlit application
+- `create_database.py`: Script to create SQLite database from Excel files
+- `mba_tech_data.db`: SQLite database containing all data
+- `requirements.txt`: Python package dependencies
+- `.streamlit/config.toml`: Streamlit configuration
+- `.gitignore`: Git ignore rules (excludes Excel files)
 
 ## Features
 

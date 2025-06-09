@@ -2363,3 +2363,29 @@ st.markdown(f"""
         </div>
     </div>
 """, unsafe_allow_html=True)
+
+def create_connection():
+    conn = sqlite3.connect('mba_tech_data.db')
+    return conn
+
+def create_table(conn, table_name, columns):
+    cursor = conn.cursor()
+    create_table_query = f"""
+    CREATE TABLE IF NOT EXISTS {table_name} (
+        {', '.join(columns)}
+    )
+    """
+    cursor.execute(create_table_query)
+
+def insert_data(conn, table_name, data):
+    cursor = conn.cursor()
+    columns = ', '.join(data[0].keys())
+    placeholders = ', '.join(['?' for _ in data[0]])
+    
+    insert_query = f"""
+    INSERT INTO {table_name} ({columns})
+    VALUES ({placeholders})
+    """
+    
+    for row in data:
+        cursor.execute(insert_query, list(row.values()))
