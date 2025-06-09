@@ -26,8 +26,18 @@ if 'login_attempts' not in st.session_state:
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
-MAIN_PASSWORD = "placecom"
-CONTACT_PASSWORD = "svkm@nmims"
+# Fetch passwords from Streamlit secrets
+try:
+    MAIN_PASSWORD = st.secrets["main_password"]
+except KeyError:
+    st.error("Secret 'main_password' not found. Please set it in Streamlit Cloud secrets.")
+    st.stop()
+
+try:
+    CONTACT_PASSWORD = st.secrets["contact_password"]
+except KeyError:
+    st.error("Secret 'contact_password' not found. Please set it in Streamlit Cloud secrets.")
+    st.stop()
 
 def check_main_password():
     """Main password authentication system"""
