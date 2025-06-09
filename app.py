@@ -10,6 +10,7 @@ from PIL import Image
 import io
 import sqlite3
 import tempfile
+from create_database import standardize_columns
 
 # Set page configuration
 st.set_page_config(
@@ -275,7 +276,8 @@ def check_password():
 # Create batch selection dropdown in sidebar
 batch = st.sidebar.selectbox(
     "Select Batch",
-    ["MBA.Tech '25", "MBA.Tech '26"]
+    ["MBA.Tech '25", "MBA.Tech '26"],
+    index=0
 )
 
 def get_db_path():
@@ -294,16 +296,16 @@ def load_batch_data(batch):
     
     # Map batch names to table names
     batch_to_table = {
-        'MBA.Tech 23': 'mba_tech_23',
-        'MBA.Tech 24': 'mba_tech_24',
-        'MBA.Tech 25': 'mba_tech_25'
+        "MBA.Tech '25": 'mba_tech_25',
+        "MBA.Tech '26": 'mba_tech_26'
     }
     
     # Read data from the appropriate table
     query = f"SELECT * FROM {batch_to_table[batch]}"
     df = pd.read_sql_query(query, conn)
     
-    # Standardize column names
+    # Standardize column names using the function from create_database.py
+    df = standardize_columns(df)
     df.columns = [col.strip().replace('_', ' ').title() for col in df.columns]
     
     conn.close()
@@ -443,13 +445,14 @@ def create_combined_distribution_analysis(df, has_major=True):
     Create a combined distribution analysis showing multiple metrics in a single view
     """
     st.write("### Combined Distribution Analysis")
+    print("Columns in DataFrame:", df.columns)
     
     # Create subplots with appropriate layout based on available data
     if has_major:
         fig = make_subplots(
             rows=2, cols=2,
             subplot_titles=("Campus Distribution", "Branch Distribution", 
-                           "Major Distribution", "MIP Company Distribution"),
+                           "Major Distribution", "Mip Company Distribution"),
             specs=[[{"type": "pie"}, {"type": "bar"}],
                   [{"type": "pie"}, {"type": "bar"}]]
         )
@@ -457,20 +460,20 @@ def create_combined_distribution_analysis(df, has_major=True):
         fig = make_subplots(
             rows=2, cols=2,
             subplot_titles=("Campus Distribution", "Branch Distribution", 
-                           "Division Distribution", "MIP Company Distribution"),
+                           "Division Distribution", "Mip Company Distribution"),
             specs=[[{"type": "pie"}, {"type": "bar"}],
                   [{"type": "pie"}, {"type": "bar"}]]
         )
     
     # Campus Distribution (Pie Chart)
-    campus_counts = df["CAMPUS"].value_counts()
+    campus_counts = df["Campus"].value_counts()
     fig.add_trace(
         go.Pie(labels=campus_counts.index, values=campus_counts.values, hole=0.4),
         row=1, col=1
     )
     
     # Branch Distribution (Bar Chart)
-    branch_counts = df["BRANCH"].value_counts()
+    branch_counts = df["Branch"].value_counts()
     fig.add_trace(
         go.Bar(x=branch_counts.index, y=branch_counts.values, text=branch_counts.values,
                textposition='auto'),
@@ -492,8 +495,8 @@ def create_combined_distribution_analysis(df, has_major=True):
             row=2, col=1
         )
     
-    # MIP Company Distribution (Top 10 Bar Chart)
-    company_counts = df["MIP Company"].value_counts().head(10)
+    # Mip Company Distribution (Top 10 Bar Chart)
+    company_counts = df["Mip Company"].value_counts().head(10)
     fig.add_trace(
         go.Bar(x=company_counts.index, y=company_counts.values, text=company_counts.values,
                textposition='auto'),
@@ -536,14 +539,14 @@ def create_advanced_analytics(df, has_major=True):
         if has_major:
             # Campus vs Major vs Branch Analysis
             campus_analysis = pd.crosstab(
-                [df['CAMPUS'], df['BRANCH']], 
+                [df['Campus'], df['Branch']],
                 df['Major']
             ).reset_index()
             
             # Create a heatmap
             campus_major_data = []
-            for campus in df['CAMPUS'].unique():
-                campus_data = df[df['CAMPUS'] == campus]
+            for campus in df['Campus'].unique():
+                campus_data = df[df['Campus'] == campus]
                 for major in df['Major'].unique():
                     count = len(campus_data[campus_data['Major'] == major])
                     campus_major_data.append({
@@ -566,8 +569,8 @@ def create_advanced_analytics(df, has_major=True):
         st.write("#### Branch Distribution: Mumbai vs Shirpur")
         
         # Create branch counts for each campus
-        mumbai_counts = df[df['CAMPUS'] == 'Mumbai']['BRANCH'].value_counts()
-        shirpur_counts = df[df['CAMPUS'] == 'Shirpur']['BRANCH'].value_counts()
+        mumbai_counts = df[df['Campus'] == 'Mumbai']['Branch'].value_counts()
+        shirpur_counts = df[df['Campus'] == 'Shirpur']['Branch'].value_counts()
         
         # Create a DataFrame for comparison
         branch_comparison = pd.DataFrame({
@@ -625,12 +628,12 @@ def create_advanced_analytics(df, has_major=True):
     with tabs[tab_index]:
         st.write("#### Career and Placement Insights")
         
-        # MIP Company distribution by Branch and Campus
+        # Mip Company distribution by Branch and Campus
         col1, col2 = st.columns(2)
         
         with col1:
             # Top companies by branch
-            branch_company = pd.crosstab(df['BRANCH'], df['MIP Company'])
+            branch_company = pd.crosstab(df['Branch'], df['Mip Company'])
             top_companies_branch = branch_company.sum().sort_values(ascending=False).head(5)
             
             fig = px.bar(
@@ -642,480 +645,177 @@ def create_advanced_analytics(df, has_major=True):
             display_plotly_chart(fig)
         
         with col2:
-            # Branch-wise placement distribution
-            branch_placement = df.groupby('BRANCH')['MIP Company'].nunique()
-            fig = px.pie(
-                values=branch_placement.values,
-                names=branch_placement.index,
-                title="Branch-wise Company Distribution",
-                hole=0.4
+            # Branch-wise Mip Company placement count
+            branch_placement = df.groupby('Branch')['Mip Company'].nunique()
+            branch_placement = branch_placement.sort_values(ascending=False).reset_index()
+            branch_placement.columns = ["Branch", "Number of Unique Companies"]
+            
+            st.write("##### Branch-wise Unique Company Placements")
+            display_secure_dataframe(branch_placement)
+            
+            # Visualize Branch-wise Unique Company Placements
+            fig = px.bar(
+                branch_placement,
+                x="Branch",
+                y="Number of Unique Companies",
+                title="Number of Unique Companies Placed per Branch",
+                text="Number of Unique Companies"
+            )
+            fig.update_layout(
+                xaxis_tickangle=-45,
+                height=500
             )
             display_plotly_chart(fig)
-
-def create_subject_trend_analysis(df, semester):
-    """
-    Create comprehensive subject trend analysis
-    """
-    st.write(f"### {semester} Subject Analysis")
-    
-    subject_cols = [col for col in df.columns if col.startswith(f"Sub {semester}")]
-    
-    # Create a long format dataframe for all subjects
-    all_subjects_data = pd.DataFrame()
-    for sub in subject_cols:
-        sub_counts = df[sub].value_counts().reset_index()
-        sub_counts.columns = ["Subject", "Count"]
-        sub_counts["Subject Code"] = sub
-        all_subjects_data = pd.concat([all_subjects_data, sub_counts])
-    
-    # Get top subjects by enrollment
-    top_subjects = all_subjects_data.nlargest(10, "Count")
-    
-    # Create visualization
-    fig = make_subplots(rows=1, cols=2,
-                        subplot_titles=("Top 10 Subjects", "Subject Distribution"),
-                        specs=[[{"type": "bar"}, {"type": "pie"}]])
-    
-    # Bar chart for top 10 subjects
-    fig.add_trace(
-        go.Bar(x=top_subjects["Subject"], y=top_subjects["Count"],
-               text=top_subjects["Count"], textposition='auto'),
-        row=1, col=1
-    )
-    
-    # Pie chart for distribution
-    fig.add_trace(
-        go.Pie(labels=top_subjects["Subject"], values=top_subjects["Count"],
-               hole=0.4),
-        row=1, col=2
-    )
-    
-    fig.update_layout(height=500, showlegend=False)
-    display_plotly_chart(fig)
-    
-    # Subject popularity by branch
-    st.write("#### Subject Popularity by Branch")
-    top_5_subjects = top_subjects.head()["Subject"].tolist()
-    branch_subject_data = []
-    
-    for subject in top_5_subjects:
-        for branch in df["BRANCH"].unique():
-            branch_data = df[df["BRANCH"] == branch]
-            count = 0
-            for sub_col in subject_cols:
-                count += len(branch_data[branch_data[sub_col] == subject])
-            branch_subject_data.append({
-                "Subject": subject,
-                "Branch": branch,
-                "Count": count
-            })
-    
-    branch_subject_df = pd.DataFrame(branch_subject_data)
-    fig = px.density_heatmap(
-        branch_subject_df,
-        x="Branch",
-        y="Subject",
-        z="Count",
-        title="Subject Popularity Across Branches"
-    )
-    display_plotly_chart(fig)
-
-def create_mba26_advanced_analytics(df):
-    """
-    Create advanced analytics specifically for MBA.Tech '26 batch
-    """
-    st.write("### Advanced Analytics for MBA.Tech '26")
-    
-    # Create tabs for different analyses
-    tabs = st.tabs([
-        "Branch & Campus Analysis",
-        "Placement Insights",
-        "Division Analysis",
-        "Contact Information Analysis"
-    ])
-    
-    with tabs[0]:
-        st.write("#### Branch and Campus Distribution Analysis")
-        
-        # Branch distribution by campus with percentage
-        branch_campus_dist = pd.crosstab(
-            df['BRANCH'], 
-            df['CAMPUS'], 
-            margins=True, 
-            margins_name='Total'
-        )
-        
-        # Calculate percentages
-        branch_campus_pct = pd.crosstab(
-            df['BRANCH'], 
-            df['CAMPUS'], 
-            normalize='columns',
-            margins=True,
-            margins_name='Total'
-        ) * 100
-        
-        # Create a comparison visualization
-        fig = go.Figure()
-        
-        campuses = df['CAMPUS'].unique()
-        branches = df['BRANCH'].unique()
-        
-        for campus in campuses:
-            campus_data = []
-            for branch in branches:
-                count = len(df[(df['CAMPUS'] == campus) & (df['BRANCH'] == branch)])
-                campus_data.append(count)
             
-            fig.add_trace(go.Bar(
-                name=campus,
-                x=branches,
-                y=campus_data,
-                text=[f"{x}" for x in campus_data],
-                textposition='auto',
-            ))
-        
+            # Campus-wise Mip Company distribution
+            st.write("##### Campus-wise Company Distribution")
+            campus_company = pd.crosstab(df['Campus'], df['Mip Company'])
+            campus_company_total = campus_company.sum(axis=1)
+            campus_company_perc = campus_company.div(campus_company_total, axis=0) * 100
+            
+            st.write("Top 5 Companies by Campus (Percentage)")
+            display_secure_dataframe(campus_company_perc.head(5))
+            
+            # Branch-wise Mip Company distribution (Cross-tabulation)
+            st.write("##### Branch-wise Company Distribution (Cross-tabulation)")
+            branch_company_dist = pd.crosstab(df['Branch'], df['Mip Company'])
+            display_secure_dataframe(branch_company_dist.head())
+            
+    # Overall Company Distribution (for both MBA.Tech 25 and 26)
+    if not has_major:
+        st.write("#### Overall Company Distribution")
+        company_counts = df['Mip Company'].value_counts().head(10)
+        fig = px.bar(
+            x=company_counts.index,
+            y=company_counts.values,
+            title="Top 10 Mip Companies",
+            text=company_counts.values
+        )
         fig.update_layout(
-            title='Branch Distribution Across Campuses',
-            xaxis_title='Branch',
-            yaxis_title='Number of Students',
-            barmode='group',
+            xaxis_tickangle=-45,
             height=500
         )
-        
         display_plotly_chart(fig)
         
-        # Display detailed statistics
-        col1, col2 = st.columns(2)
+        # Campus-wise Company Distribution
+        st.write("##### Campus-wise Company Distribution")
+        campus_company = pd.crosstab(df['Campus'], df['Mip Company'])
+        st.write(campus_company)
         
-        with col1:
-            st.write("##### Raw Numbers")
-            st.dataframe(branch_campus_dist, use_container_width=True)
+        # Branch-wise Company Distribution
+        st.write("##### Branch-wise Company Distribution")
+        branch_company_dist = pd.crosstab(df['Branch'], df['Mip Company'])
+        st.write(branch_company_dist)
         
-        with col2:
-            st.write("##### Percentage Distribution")
-            st.dataframe(branch_campus_pct.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
+        # You can add more detailed company analysis here, e.g., company-wise branch distribution
+
+def calculate_diversity_metrics(df, group_col, company_col='Mip Company'):
+    """
+    Calculate diversity metrics for selected companies
+    """
+    metrics = {}
     
-    with tabs[1]:
-        st.write("#### Placement Analysis")
+    for company in df[company_col].unique():
+        company_data = df[df[company_col] == company]
         
-        # Company distribution analysis
-        col1, col2 = st.columns(2)
+        # Calculate group distribution
+        group_dist = company_data[group_col].value_counts(normalize=True)
         
-        with col1:
-            # Top companies overall
-            company_counts = df['MIP Company'].value_counts().head(10)
-            fig = px.bar(
-                x=company_counts.index,
-                y=company_counts.values,
-                title='Top 10 Companies by Student Count',
-                labels={'x': 'Company', 'y': 'Number of Students'},
-                text=company_counts.values
-            )
-            fig.update_traces(textposition='auto')
-            display_plotly_chart(fig)
+        # Calculate diversity metrics
+        total_students = len(company_data)
+        unique_groups = len(group_dist)
         
-        with col2:
-            # Company distribution by campus
-            campus_company = pd.crosstab(df['CAMPUS'], df['MIP Company'])
-            company_by_campus = campus_company.sum(axis=0).sort_values(ascending=False).head(10)
-            
-            fig = px.pie(
-                values=company_by_campus.values,
-                names=company_by_campus.index,
-                title='Top 10 Companies Distribution',
-                hole=0.4
-            )
-            display_plotly_chart(fig)
+        # Calculate Shannon's Diversity Index
+        shannon_index = -sum(p * np.log(p) for p in group_dist if p > 0)
         
-        # Branch-wise company distribution
-        branch_company_dist = pd.crosstab(df['BRANCH'], df['MIP Company'])
+        # Calculate Simpson's Diversity Index
+        simpson_index = 1 - sum(p**2 for p in group_dist)
         
-        # Create heatmap
-        fig = px.imshow(
-            branch_company_dist,
-            title='Branch-wise Company Distribution Heatmap',
-            labels=dict(x='Company', y='Branch', color='Number of Students'),
-            aspect='auto'
-        )
-        display_plotly_chart(fig)
+        metrics[company] = {
+            'Total Students': total_students,
+            'Unique Groups': unique_groups,
+            'Shannon Index': shannon_index,
+            'Simpson Index': simpson_index,
+            'Group Distribution': group_dist
+        }
     
-    with tabs[2]:
-        st.write("#### Division Analysis")
-        
-        # Division distribution across branches and campuses
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Division distribution by branch
-            div_branch = pd.crosstab(df['Div'], df['BRANCH'])
-            fig = px.bar(
-                div_branch,
-                title='Division Distribution by Branch',
-                barmode='group',
-                labels={'value': 'Number of Students', 'Div': 'Division'}
-            )
-            display_plotly_chart(fig)
-        
-        with col2:
-            # Division distribution by campus
-            div_campus = pd.crosstab(df['Div'], df['CAMPUS'])
-            fig = px.pie(
-                values=df['Div'].value_counts().values,
-                names=df['Div'].value_counts().index,
-                title='Overall Division Distribution',
-                hole=0.4
-            )
-            display_plotly_chart(fig)
-        
-        # Detailed division statistics
-        div_stats = pd.crosstab(
-            [df['Div'], df['BRANCH']], 
-            df['CAMPUS'], 
-            margins=True,
-            margins_name='Total'
-        )
-        st.write("#### Detailed Division Statistics")
-        st.dataframe(div_stats, use_container_width=True)
-    
-    with tabs[3]:
-        st.write("#### Contact Information Analysis")
-        
-        # Function to check email pattern
-        def is_valid_email(email):
-            return "@" in email and "." in email and email != "Not Assigned"
-        
-        # Function to check contact number pattern
-        def is_valid_contact(contact):
-            return len(str(contact).replace(" ", "")) >= 10 and contact != "Not Assigned"
-        
-        # Calculate completeness metrics
-        total_students = len(df)
-        email_complete = sum(df['NMIMS Email ID'].apply(is_valid_email))
-        contact_complete = sum(df['Contact No.'].apply(is_valid_contact))
-        
-        # Create metrics display
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric(
-                "Total Students",
-                total_students
-            )
-        
-        with col2:
-            st.metric(
-                "Email Information Complete",
-                f"{email_complete} ({(email_complete/total_students*100):.1f}%)"
-            )
-        
-        with col3:
-            st.metric(
-                "Contact Information Complete",
-                f"{contact_complete} ({(contact_complete/total_students*100):.1f}%)"
-            )
-        
-        # Contact information completeness by branch and campus
-        st.write("#### Contact Information Completeness by Branch")
-        
-        # Calculate completeness by branch
-        branch_stats = df.groupby('BRANCH').agg({
-            'NMIMS Email ID': lambda x: sum(x.apply(is_valid_email)),
-            'Contact No.': lambda x: sum(x.apply(is_valid_contact)),
-            'BRANCH': 'count'
-        }).rename(columns={'BRANCH': 'Total'})
-        
-        branch_stats['Email %'] = (branch_stats['NMIMS Email ID'] / branch_stats['Total'] * 100).round(1)
-        branch_stats['Contact %'] = (branch_stats['Contact No.'] / branch_stats['Total'] * 100).round(1)
-        
-        # Format percentage columns
-        branch_stats['Email %'] = branch_stats['Email %'].apply(lambda x: f"{x}%")
-        branch_stats['Contact %'] = branch_stats['Contact %'].apply(lambda x: f"{x}%")
-        
-        st.dataframe(branch_stats, use_container_width=True)
+    return metrics
 
 def create_major_company_analysis(df):
     """
-    Create major-wise company distribution analysis with interactive company filter
+    Analyze the relationship between majors and companies
     """
-    st.write("### Major-wise Company Distribution Analysis")
+    st.write("### Major-Company Analysis")
     
-    # Get unique companies
-    companies = sorted(df["MIP Company"].unique().tolist())
+    # Get unique majors and companies
+    majors = sorted(df['Major'].unique())
+    companies = sorted(df['Mip Company'].unique())
     
-    # Create a multiselect with search for companies
-    selected_companies = st.multiselect(
-        "Select Companies to Analyze",
-        companies,
-        default=companies[:5],  # Default to top 5 companies
-        help="You can search and select multiple companies to analyze their distribution across majors"
-    )
+    # Create tabs for different analyses
+    tab1, tab2 = st.tabs(["Major-Company Distribution", "Diversity Analysis"])
     
-    if selected_companies:
-        # Create filtered dataframe
-        company_major_data = []
-        for company in selected_companies:
-            for major in df["Major"].unique():
-                count = len(df[(df["MIP Company"] == company) & (df["Major"] == major)])
-                company_major_data.append({
-                    "Company": company,
-                    "Major": major,
-                    "Count": count
-                })
+    with tab1:
+        st.write("#### Major-Company Distribution")
         
-        company_major_df = pd.DataFrame(company_major_data)
+        # Create cross-tabulation
+        cross_tab = pd.crosstab(df['Major'], df['Mip Company'])
         
-        # Create visualizations
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            # Create heatmap
-            fig = px.imshow(
-                pd.pivot_table(
-                    company_major_df,
-                    values="Count",
-                    index="Major",
-                    columns="Company"
-                ),
-                title="Major-Company Distribution Heatmap",
-                labels=dict(x="Company", y="Major", color="Number of Students"),
-                aspect="auto",
-                height=400
-            )
-            display_plotly_chart(fig)
-        
-        with col2:
-            # Create summary pie chart
-            company_totals = company_major_df.groupby("Company")["Count"].sum()
-            fig = px.pie(
-                values=company_totals.values,
-                names=company_totals.index,
-                title="Selected Companies Distribution",
-                hole=0.4
-            )
-            fig.update_layout(height=400)
-            display_plotly_chart(fig)
-        
-        # Add Company Preference Analysis
-        st.write("### Company Major Preferences")
-        
-        # Calculate percentage distribution for each company
-        company_preferences = []
-        for company in selected_companies:
-            company_data = df[df["MIP Company"] == company]
-            if not company_data.empty:
-                total_students = len(company_data)
-                for major in df["Major"].unique():
-                    major_count = len(company_data[company_data["Major"] == major])
-                    if major_count > 0:  # Only include majors with students
-                        percentage = (major_count / total_students) * 100
-                        company_preferences.append({
-                            "Company": company,
-                            "Major": major,
-                            "Percentage": percentage,
-                            "Count": major_count,
-                            "Total": total_students
-                        })
-        
-        pref_df = pd.DataFrame(company_preferences)
-        
-        # Create stacked bar chart
-        fig = go.Figure()
-        
-        # Add bars for each major
-        for major in df["Major"].unique():
-            major_data = pref_df[pref_df["Major"] == major]
-            if not major_data.empty:
-                fig.add_trace(go.Bar(
-                    name=major,
-                    x=major_data["Company"],
-                    y=major_data["Percentage"],
-                    text=[f"{p:.1f}%" for p in major_data["Percentage"]],
-                    textposition="inside",
-                    hovertemplate="<br>".join([
-                        "Company: %{x}",
-                        "Major: " + major,
-                        "Percentage: %{text}",
-                        "Count: %{customdata[0]}",
-                        "Total Students: %{customdata[1]}"
-                    ]),
-                    customdata=major_data[["Count", "Total"]].values
-                ))
-        
-        fig.update_layout(
-            title="Major Distribution within Companies",
-            xaxis_title="Company",
-            yaxis_title="Percentage of Students",
-            barmode="stack",
-            height=500,
-            showlegend=True,
-            legend_title="Major",
-            yaxis=dict(tickformat=".1f", ticksuffix="%")
+        # Create heatmap
+        fig = px.imshow(
+            cross_tab,
+            labels=dict(x="Company", y="Major", color="Number of Students"),
+            title="Major-Company Distribution",
+            aspect="auto"
         )
-        
+        fig.update_layout(height=600)
         display_plotly_chart(fig)
         
-        # Detailed statistics
+        # Display detailed statistics
         st.write("#### Detailed Statistics")
+        display_secure_dataframe(cross_tab)
+    
+    with tab2:
+        st.write("#### Company Diversity Analysis")
         
-        # Create cross tab with percentages
-        cross_tab = pd.crosstab(
-            df[df["MIP Company"].isin(selected_companies)]["Major"],
-            df[df["MIP Company"].isin(selected_companies)]["MIP Company"],
-            margins=True,
-            margins_name="Total"
+        # Allow selection of companies for diversity analysis
+        selected_companies_diversity = st.multiselect(
+            "Select companies for diversity analysis",
+            companies,
+            default=companies[:3] if len(companies) > 3 else companies
         )
         
-        # Calculate percentages
-        percentage_tab = pd.crosstab(
-            df[df["MIP Company"].isin(selected_companies)]["Major"],
-            df[df["MIP Company"].isin(selected_companies)]["MIP Company"],
-            normalize="columns",
-            margins=True,
-            margins_name="Total"
-        ) * 100
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write("##### Raw Numbers")
-            st.dataframe(cross_tab, use_container_width=True)
-        
-        with col2:
-            st.write("##### Percentage Distribution")
-            st.dataframe(percentage_tab.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
-        
-        # Additional insights
-        st.write("#### Key Insights")
-        
-        # Most popular major for each company
-        top_majors = pd.DataFrame()
-        for company in selected_companies:
-            company_data = df[df["MIP Company"] == company]
-            if not company_data.empty:
-                major_counts = company_data["Major"].value_counts()
-                top_major = major_counts.index[0]
-                top_count = major_counts.values[0]
-                total_count = len(company_data)
-                percentage = (top_count / total_count) * 100
+        if selected_companies_diversity:
+            diversity_metrics = calculate_diversity_metrics(
+                df[df["Mip Company"].isin(selected_companies_diversity)],
+                'Major',
+                company_col='Mip Company'
+            )
+            
+            # Display diversity metrics
+            st.write("#### Diversity Metrics by Company")
+            for company, metrics in diversity_metrics.items():
+                st.write(f"##### {company}")
+                col1, col2 = st.columns(2)
                 
-                top_majors = pd.concat([top_majors, pd.DataFrame({
-                    "Company": [company],
-                    "Top Major": [top_major],
-                    "Count": [top_count],
-                    "Total Students": [total_count],
-                    "Percentage": [f"{percentage:.1f}%"]
-                })])
-        
-        st.dataframe(
-            top_majors.set_index("Company"),
-            use_container_width=True
-        )
-    else:
-        st.warning("Please select at least one company to analyze.")
+                with col1:
+                    st.write("**Basic Metrics**")
+                    st.write(f"Total Students: {metrics['Total Students']}")
+                    st.write(f"Unique Majors: {metrics['Unique Groups']}")
+                    st.write(f"Shannon Index: {metrics['Shannon Index']:.3f}")
+                    st.write(f"Simpson Index: {metrics['Simpson Index']:.3f}")
+                
+                with col2:
+                    st.write("**Major Distribution**")
+                    display_secure_dataframe(
+                        pd.DataFrame({
+                            'Major': metrics['Group Distribution'].index,
+                            'Percentage': metrics['Group Distribution'].values
+                        }).round(3)
+                    )
 
 def create_major_subject_analysis(df, semester):
     """
-    Create subject analysis based on majors
+    Analyze relationship between major and subjects for a given semester
     """
     st.write(f"### {semester} Subject Analysis by Major")
     
@@ -1306,7 +1006,7 @@ def create_company_relationship_analysis(df):
     ])
     
     # Store companies list for reuse
-    companies = sorted(df['MIP Company'].unique().tolist())
+    companies = sorted(df['Mip Company'].unique().tolist())
     
     with tabs[0]:
         st.write("#### Company Distribution by Branch")
@@ -1321,10 +1021,10 @@ def create_company_relationship_analysis(df):
         
         if selected_companies:
             # Filter data for selected companies
-            filtered_df = df[df['MIP Company'].isin(selected_companies)]
+            filtered_df = df[df['Mip Company'].isin(selected_companies)]
             
             # Create cross-tabulation
-            branch_company = pd.crosstab(filtered_df['BRANCH'], filtered_df['MIP Company'])
+            branch_company = pd.crosstab(filtered_df['Branch'], filtered_df['Mip Company'])
             
             # Create heatmap
             fig = px.imshow(
@@ -1379,10 +1079,10 @@ def create_company_relationship_analysis(df):
         
         if selected_companies_div:
             # Filter data for selected companies
-            filtered_df_div = df[df['MIP Company'].isin(selected_companies_div)]
+            filtered_df_div = df[df['Mip Company'].isin(selected_companies_div)]
             
             # Create cross-tabulation
-            div_company = pd.crosstab(filtered_df_div['Div'], filtered_df_div['MIP Company'])
+            div_company = pd.crosstab(filtered_df_div['Div'], filtered_df_div['Mip Company'])
             
             # Create heatmap
             fig = px.imshow(
@@ -1437,10 +1137,10 @@ def create_company_relationship_analysis(df):
         
         if selected_companies_campus:
             # Filter data for selected companies
-            filtered_df_campus = df[df['MIP Company'].isin(selected_companies_campus)]
+            filtered_df_campus = df[df['Mip Company'].isin(selected_companies_campus)]
             
             # Create cross-tabulation
-            campus_company = pd.crosstab(filtered_df_campus['CAMPUS'], filtered_df_campus['MIP Company'])
+            campus_company = pd.crosstab(filtered_df_campus['Campus'], filtered_df_campus['Mip Company'])
             
             # Create heatmap
             fig = px.imshow(
@@ -1532,7 +1232,7 @@ def create_company_relationship_analysis(df):
         with col1:
             # Branch to Company
             nodes, sources, targets, values, colors = prepare_sankey_data(
-                df, 'BRANCH', 'MIP Company', selected_companies_combined
+                df, 'Branch', 'Mip Company', selected_companies_combined
             )
             fig = go.Figure(data=[go.Sankey(
                 node=dict(
@@ -1555,7 +1255,7 @@ def create_company_relationship_analysis(df):
         with col2:
             # Division to Company
             nodes, sources, targets, values, colors = prepare_sankey_data(
-                df, 'Div', 'MIP Company', selected_companies_combined
+                df, 'Div', 'Mip Company', selected_companies_combined
             )
             fig = go.Figure(data=[go.Sankey(
                 node=dict(
@@ -1577,7 +1277,7 @@ def create_company_relationship_analysis(df):
         
         # Campus to Company
         nodes, sources, targets, values, colors = prepare_sankey_data(
-            df, 'CAMPUS', 'MIP Company', selected_companies_combined
+            df, 'Campus', 'Mip Company', selected_companies_combined
         )
         fig = go.Figure(data=[go.Sankey(
             node=dict(
@@ -1601,7 +1301,7 @@ def create_company_relationship_analysis(df):
         st.write("#### Summary Statistics")
         
         # Calculate diversity metrics
-        def calculate_diversity_metrics(df, group_col, company_col='MIP Company'):
+        def calculate_diversity_metrics(df, group_col, company_col='Mip Company'):
             metrics = []
             for group in df[group_col].unique():
                 group_data = df[df[group_col] == group]
@@ -1619,7 +1319,7 @@ def create_company_relationship_analysis(df):
         
         with col1:
             st.write("Branch Diversity")
-            st.dataframe(calculate_diversity_metrics(df, 'BRANCH'), use_container_width=True)
+            st.dataframe(calculate_diversity_metrics(df, 'Branch'), use_container_width=True)
         
         with col2:
             st.write("Division Diversity")
@@ -1627,7 +1327,7 @@ def create_company_relationship_analysis(df):
         
         with col3:
             st.write("Campus Diversity")
-            st.dataframe(calculate_diversity_metrics(df, 'CAMPUS'), use_container_width=True)
+            st.dataframe(calculate_diversity_metrics(df, 'Campus'), use_container_width=True)
 
 def create_contact_info_analysis(df):
     """
@@ -1654,7 +1354,7 @@ def create_contact_info_analysis(df):
         
         # Calculate completeness metrics
         total_students = len(df)
-        email_complete = sum(df['NMIMS Email ID'].apply(check_completeness))
+        email_complete = sum(df['Nmims Email'].apply(check_completeness))
         contact_complete = sum(df['Contact No.'].apply(check_completeness))
         
         # Create metrics display
@@ -1684,7 +1384,7 @@ def create_contact_info_analysis(df):
         
         # Create completeness heatmap
         completeness_data = pd.DataFrame({
-            'Email': df['NMIMS Email ID'].apply(check_completeness),
+            'Email': df['Nmims Email'].apply(check_completeness),
             'Contact': df['Contact No.'].apply(check_completeness)
         })
         
@@ -1709,7 +1409,7 @@ def create_contact_info_analysis(df):
             except:
                 return "Invalid Format"
         
-        df['Email Domain'] = df['NMIMS Email ID'].apply(extract_domain)
+        df['Email Domain'] = df['Nmims Email'].apply(extract_domain)
         
         # Create domain distribution
         domain_counts = df['Email Domain'].value_counts()
@@ -1782,12 +1482,12 @@ def create_contact_info_analysis(df):
         
         # Create cross-tabulation
         campus_email = pd.crosstab(
-            df['CAMPUS'],
-            df['NMIMS Email ID'].apply(check_completeness),
+            df['Campus'],
+            df['Nmims Email'].apply(check_completeness),
             margins=True
         )
         campus_contact = pd.crosstab(
-            df['CAMPUS'],
+            df['Campus'],
             df['Contact No.'].apply(check_completeness),
             margins=True
         )
@@ -1833,6 +1533,46 @@ def create_contact_info_analysis(df):
             st.write("Contact Information")
             st.dataframe(campus_contact_pct.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
 
+def create_subject_trend_analysis(df, semester):
+    """
+    Analyze subject enrollment trends for a specific semester
+    """
+    st.write(f"### Subject Enrollment Trends - {semester}")
+    
+    # Get all subject columns for the semester
+    subject_cols = [col for col in df.columns if col.startswith(f"Sub {semester}")]
+    
+    # Create a long format dataframe for all subjects
+    all_subjects_data = pd.DataFrame()
+    for sub in subject_cols:
+        sub_counts = df[sub].value_counts().reset_index()
+        sub_counts.columns = ["Subject", "Count"]
+        sub_counts["Subject Code"] = sub
+        all_subjects_data = pd.concat([all_subjects_data, sub_counts])
+    
+    # Sort by count to get most popular subjects
+    all_subjects_data = all_subjects_data.sort_values("Count", ascending=False)
+    
+    # Create bar chart
+    fig = px.bar(
+        all_subjects_data,
+        x="Subject",
+        y="Count",
+        color="Subject Code",
+        title=f"Subject Enrollment Distribution - {semester}",
+        labels={"Subject": "Subject Name", "Count": "Number of Students"}
+    )
+    fig.update_layout(
+        xaxis_tickangle=-45,
+        height=600,
+        showlegend=True
+    )
+    display_plotly_chart(fig)
+    
+    # Display detailed statistics
+    st.write("#### Detailed Subject Statistics")
+    display_secure_dataframe(all_subjects_data)
+
 # Load and display data based on selection
 if batch:
     df = load_batch_data(batch)
@@ -1843,12 +1583,12 @@ if batch:
         if batch == "MBA.Tech '25":
             # Convert columns to string type and handle NaN values
             df["Div"] = df["Div"].fillna("Not Assigned").astype(str)
-            df["BRANCH"] = df["BRANCH"].fillna("Not Assigned").astype(str)
-            df["CAMPUS"] = df["CAMPUS"].fillna("Not Assigned").astype(str)
+            df["Branch"] = df["Branch"].fillna("Not Assigned").astype(str)
+            df["Campus"] = df["Campus"].fillna("Not Assigned").astype(str)
             df["Major"] = df["Major"].fillna("Not Assigned").astype(str)
-            df["MIP Company"] = df["MIP Company"].fillna("Not Assigned").astype(str)
+            df["Mip Company"] = df["Mip Company"].fillna("Not Assigned").astype(str)
             df["Contact No."] = df["Contact No."].fillna("Not Assigned").astype(str)
-            df["NMIMS Email ID"] = df["NMIMS Email ID"].fillna("Not Assigned").astype(str)
+            df["Nmims Email"] = df["Nmims Email"].fillna("Not Assigned").astype(str)
             
             # Add filters to sidebar
             st.sidebar.write("### Filters")
@@ -1863,14 +1603,14 @@ if batch:
             # Branch filter with select all
             branch_filter = multiselect_with_select_all(
                 "Branch",
-                sorted(df["BRANCH"].unique().tolist()),
+                sorted(df["Branch"].unique().tolist()),
                 "branch_filter"
             )
             
             # Campus filter with select all
             campus_filter = multiselect_with_select_all(
                 "Campus",
-                sorted(df["CAMPUS"].unique().tolist()),
+                sorted(df["Campus"].unique().tolist()),
                 "campus_filter"
             )
             
@@ -1898,16 +1638,16 @@ if batch:
                 key="contact_filter"
             )
             
-            # NMIMS Email ID filter
+            # Nmims Email filter
             email_filter = st.sidebar.text_input(
-                "NMIMS Email ID (Enter to search)",
+                "Nmims Email (Enter to search)",
                 key="email_filter"
             )
             
-            # MIP Company filter with select all
+            # Mip Company filter with select all
             mip_filter = multiselect_with_select_all(
-                "MIP Company",
-                sorted(df["MIP Company"].unique().tolist()),
+                "Mip Company",
+                sorted(df["Mip Company"].unique().tolist()),
                 "mip_filter"
             )
             
@@ -1950,9 +1690,9 @@ if batch:
             if div_filter:
                 mask &= df["Div"].isin(div_filter)
             if branch_filter:
-                mask &= df["BRANCH"].isin(branch_filter)
+                mask &= df["Branch"].isin(branch_filter)
             if campus_filter:
-                mask &= df["CAMPUS"].isin(campus_filter)
+                mask &= df["Campus"].isin(campus_filter)
             if roll_no_filter:
                 roll_nos = [x.strip().lower() for x in roll_no_filter.split(",")]
                 mask &= df["Roll No."].astype(str).str.lower().isin(roll_nos)
@@ -1960,13 +1700,13 @@ if batch:
                 sap_ids = [x.strip().lower() for x in sap_id_filter.split(",")]
                 mask &= df["SAP ID"].astype(str).str.lower().isin(sap_ids)
             if name_filter:
-                mask &= df["NAME"].str.lower().str.contains(name_filter.lower(), na=False)
+                mask &= df["Name"].str.lower().str.contains(name_filter.lower(), na=False)
             if contact_filter:
                 mask &= df["Contact No."].astype(str).str.lower().str.contains(contact_filter.lower(), na=False)
             if email_filter:
-                mask &= df["NMIMS Email ID"].str.lower().str.contains(email_filter.lower(), na=False)
+                mask &= df["Nmims Email"].str.lower().str.contains(email_filter.lower(), na=False)
             if mip_filter:
-                mask &= df["MIP Company"].isin(mip_filter)
+                mask &= df["Mip Company"].isin(mip_filter)
             if major_filter:
                 mask &= df["Major"].isin(major_filter)
             
@@ -2057,11 +1797,14 @@ if batch:
             # Convert columns to string type and handle NaN values
             columns_to_process = {
                 "Div": "Div",
-                "BRANCH": "BRANCH",
-                "CAMPUS": "CAMPUS",
-                "MIP Company": "MIP Company",
+                "Branch": "Branch",
+                "Campus": "Campus",
+                "Mip Company": "Mip Company",
                 "Contact No.": "Contact No.",
-                "NMIMS Email ID": "NMIMS Email ID"
+                "Nmims Email": "Nmims Email",
+                "Roll No.": "Roll No.",
+                "SAP ID": "SAP ID",
+                "Name": "Name"
             }
             
             for col in columns_to_process:
@@ -2080,23 +1823,23 @@ if batch:
                 )
             
             # Branch filter with select all
-            if "BRANCH" in df.columns:
+            if "Branch" in df.columns:
                 branch_filter = multiselect_with_select_all(
                     "Branch",
-                    sorted(df["BRANCH"].unique().tolist()),
+                    sorted(df["Branch"].unique().tolist()),
                     "branch_filter_26"
                 )
             
             # Campus filter with select all
-            if "CAMPUS" in df.columns:
+            if "Campus" in df.columns:
                 campus_filter = multiselect_with_select_all(
                     "Campus",
-                    sorted(df["CAMPUS"].unique().tolist()),
+                    sorted(df["Campus"].unique().tolist()),
                     "campus_filter_26"
                 )
             
             # Roll No filter
-            if "Roll Number" in df.columns:
+            if "Roll No." in df.columns:
                 roll_no_filter = st.sidebar.text_input(
                     "Roll No. (Enter comma-separated values)",
                     key="roll_no_filter_26"
@@ -2110,7 +1853,7 @@ if batch:
                 )
             
             # Name filter
-            if "NAME" in df.columns:
+            if "Name" in df.columns:
                 name_filter = st.sidebar.text_input(
                     "Name (Enter to search)",
                     key="name_filter_26"
@@ -2123,18 +1866,18 @@ if batch:
                     key="contact_filter_26"
                 )
             
-            # NMIMS Email ID filter
-            if "NMIMS Email ID" in df.columns:
+            # Nmims Email filter
+            if "Nmims Email" in df.columns:
                 email_filter = st.sidebar.text_input(
-                    "NMIMS Email ID (Enter to search)",
+                    "Nmims Email (Enter to search)",
                     key="email_filter_26"
                 )
             
-            # MIP Company filter with select all
-            if "MIP Company" in df.columns:
+            # Mip Company filter with select all
+            if "Mip Company" in df.columns:
                 mip_filter = multiselect_with_select_all(
-                    "MIP Company",
-                    sorted(df["MIP Company"].unique().tolist()),
+                    "Mip Company",
+                    sorted(df["Mip Company"].unique().tolist()),
                     "mip_filter_26"
                 )
             
@@ -2143,24 +1886,24 @@ if batch:
             
             if "Div" in df.columns and div_filter:
                 mask &= df["Div"].isin(div_filter)
-            if "BRANCH" in df.columns and branch_filter:
-                mask &= df["BRANCH"].isin(branch_filter)
-            if "CAMPUS" in df.columns and campus_filter:
-                mask &= df["CAMPUS"].isin(campus_filter)
-            if "Roll Number" in df.columns and roll_no_filter:
+            if "Branch" in df.columns and branch_filter:
+                mask &= df["Branch"].isin(branch_filter)
+            if "Campus" in df.columns and campus_filter:
+                mask &= df["Campus"].isin(campus_filter)
+            if "Roll No." in df.columns and roll_no_filter:
                 roll_nos = [x.strip().lower() for x in roll_no_filter.split(",")]
-                mask &= df["Roll Number"].astype(str).str.lower().isin(roll_nos)
+                mask &= df["Roll No."].astype(str).str.lower().isin(roll_nos)
             if "SAP ID" in df.columns and sap_id_filter:
                 sap_ids = [x.strip().lower() for x in sap_id_filter.split(",")]
                 mask &= df["SAP ID"].astype(str).str.lower().isin(sap_ids)
-            if "NAME" in df.columns and name_filter:
-                mask &= df["NAME"].str.lower().str.contains(name_filter.lower(), na=False)
+            if "Name" in df.columns and name_filter:
+                mask &= df["Name"].str.lower().str.contains(name_filter.lower(), na=False)
             if "Contact No." in df.columns and contact_filter:
                 mask &= df["Contact No."].astype(str).str.lower().str.contains(contact_filter.lower(), na=False)
-            if "NMIMS Email ID" in df.columns and email_filter:
-                mask &= df["NMIMS Email ID"].str.lower().str.contains(email_filter.lower(), na=False)
-            if "MIP Company" in df.columns and mip_filter:
-                mask &= df["MIP Company"].isin(mip_filter)
+            if "Nmims Email" in df.columns and email_filter:
+                mask &= df["Nmims Email"].str.lower().str.contains(email_filter.lower(), na=False)
+            if "Mip Company" in df.columns and mip_filter:
+                mask &= df["Mip Company"].isin(mip_filter)
             
             # Display filtered data
             filtered_df = df[mask]

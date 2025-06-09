@@ -1,66 +1,22 @@
-# MBA.Tech Data Viewer
+# MBA.Tech Batch Data Viewer
 
-A Streamlit application for viewing and analyzing MBA.Tech student data.
-
-## Setup Instructions
-
-1. **Local Development**:
-   - Keep your Excel files (`MBA.Tech 23.xlsx`, `MBA.Tech 24.xlsx`, `MBA.Tech 25.xlsx`) on your local computer
-   - Run `create_database.py` to create the SQLite database:
-     ```bash
-     python create_database.py
-     ```
-   - This will create `mba_tech_data.db` containing all your data
-
-2. **Running Locally**:
-   - Install requirements:
-     ```bash
-     pip install -r requirements.txt
-     ```
-   - Run the Streamlit app:
-     ```bash
-     streamlit run app.py
-     ```
-
-3. **Deployment to Streamlit Cloud**:
-   - The `mba_tech_data.db` file is included in the repository
-   - Excel files are not included for security
-   - Deploy to Streamlit Cloud using Python 3.10
-
-## Security Notes
-
-- Excel files are kept local and not uploaded to GitHub
-- Data is stored in SQLite database format
-- The database file is included in the repository for deployment
-- Users can only access the data through the Streamlit interface
-
-## Files
-
-- `app.py`: Main Streamlit application
-- `create_database.py`: Script to create SQLite database from Excel files
-- `mba_tech_data.db`: SQLite database containing all data
-- `requirements.txt`: Python package dependencies
-- `.streamlit/config.toml`: Streamlit configuration
-- `.gitignore`: Git ignore rules (excludes Excel files)
+A Streamlit application for viewing and analyzing MBA.Tech batch data.
 
 ## Features
 
 - Secure authentication system
-- Interactive data visualization
-- Advanced analytics and insights
-- Contact information protection
-- Cross-tabulation analysis
-- Subject and company relationship analysis
+- Batch-wise data analysis
+- Subject enrollment analysis
+- Major-Company relationship analysis
+- Contact information analysis
+- Advanced analytics and visualizations
 
-## Deployment
-
-This application is deployed on Streamlit Community Cloud. To access the deployed version, please contact the administrator.
-
-## Local Development
+## Setup Instructions
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/Am-ShivA/MBA.Tech-Data.git
+git clone <your-repo-url>
+cd <repo-name>
 ```
 
 2. Install dependencies:
@@ -68,25 +24,52 @@ git clone https://github.com/Am-ShivA/MBA.Tech-Data.git
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+3. Place your Excel files in the project directory:
+   - `MBA.Tech 25.xlsx`
+   - `MBA.Tech 26.xlsx`
+
+4. Create the database:
+```bash
+python create_database.py
+```
+
+5. Run the application:
 ```bash
 streamlit run app.py
 ```
 
-## Security
+## File Structure
 
-- The application implements multiple layers of security:
-  - Password protection for data access
-  - Contact information masking
-  - Download prevention
-  - Right-click and keyboard shortcut disabling
+- `app.py`: Main Streamlit application
+- `create_database.py`: Script to create SQLite database from Excel files
+- `requirements.txt`: Python package dependencies
+- `runtime.txt`: Python version specification
+- `.streamlit/config.toml`: Streamlit configuration
 
-## Data Protection
+## Security Notes
 
-- Contact numbers are masked by default
-- Data export functionality is disabled
-- Screenshot prevention measures are implemented
+- Excel files containing student data are not committed to the repository
+- The application uses a SQLite database for data storage
+- Authentication is required to access the application
+- Contact information is masked for privacy
 
-## Author
+## Deployment
 
-Developed by [Shivam Baranwal](https://www.linkedin.com/in/shivam-baranwal-nmims) 
+The application can be deployed on Streamlit Cloud:
+
+1. Push your code to a private GitHub repository
+2. Create a new app on Streamlit Cloud
+3. Connect to your GitHub repository
+4. Set the main file path to `app.py`
+5. Add any required secrets in the Streamlit Cloud dashboard
+
+## Development
+
+- Python 3.10 or higher is required
+- Use virtual environment for development
+- Follow PEP 8 style guide
+- Test changes locally before deploying
+
+## License
+
+Private - All rights reserved 
