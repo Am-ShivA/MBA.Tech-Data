@@ -818,7 +818,7 @@ def create_mba26_advanced_analytics(df):
         
         with col2:
             st.write("##### Percentage Distribution")
-            st.dataframe(branch_campus_pct.round(2).map(lambda x: f"{x}%"), use_container_width=True)
+            st.dataframe(branch_campus_pct.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
     
     with tabs[1]:
         st.write("#### Placement Analysis")
@@ -1107,7 +1107,7 @@ def create_major_company_analysis(df):
         
         with col2:
             st.write("##### Percentage Distribution")
-            st.dataframe(percentage_tab.round(2).map(lambda x: f"{x}%"), use_container_width=True)
+            st.dataframe(percentage_tab.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
         
         # Additional insights
         st.write("#### Key Insights")
@@ -1387,7 +1387,7 @@ def create_company_relationship_analysis(df):
             with col2:
                 st.write("Percentage Distribution")
                 branch_company_pct = branch_company.div(branch_company.sum(axis=1), axis=0) * 100
-                st.dataframe(branch_company_pct.round(2).map(lambda x: f"{x}%"), use_container_width=True)
+                st.dataframe(branch_company_pct.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
         else:
             st.warning("Please select at least one company to analyze.")
     
@@ -1445,7 +1445,7 @@ def create_company_relationship_analysis(df):
             with col2:
                 st.write("Percentage Distribution")
                 div_company_pct = div_company.div(div_company.sum(axis=1), axis=0) * 100
-                st.dataframe(div_company_pct.round(2).map(lambda x: f"{x}%"), use_container_width=True)
+                st.dataframe(div_company_pct.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
         else:
             st.warning("Please select at least one company to analyze.")
     
@@ -1503,7 +1503,7 @@ def create_company_relationship_analysis(df):
             with col2:
                 st.write("Percentage Distribution")
                 campus_company_pct = campus_company.div(campus_company.sum(axis=1), axis=0) * 100
-                st.dataframe(campus_company_pct.round(2).map(lambda x: f"{x}%"), use_container_width=True)
+                st.dataframe(campus_company_pct.round(2).applymap(lambda x: f"{x}%"), use_container_width=True)
         else:
             st.warning("Please select at least one company to analyze.")
     
