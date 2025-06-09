@@ -1298,7 +1298,7 @@ def create_major_subject_analysis(df, semester):
             )
             
             # Format percentages
-            percentage_df = stats_df["Percentage"].round(1).map(lambda x: f"{x}%")
+            percentage_df = stats_df["Percentage"].round(1).applymap(lambda x: f"{x}%")
             counts_df = stats_df["Count"]
             
             col1, col2 = st.columns(2)
