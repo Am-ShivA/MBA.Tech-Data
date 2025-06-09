@@ -283,27 +283,52 @@ def load_batch_data(batch):
         
         if os.path.exists(file_path):
             df = pd.read_excel(file_path)
-            # Convert all object columns to string to avoid type issues
+            
+            # Robust column name standardization (apply to all dataframes regardless of batch)
+            new_columns_map = {}
+            for col in df.columns:
+                # Strip leading/trailing whitespace and normalize case
+                clean_col = col.strip()
+                # Replace multiple spaces with single space
+                clean_col = ' '.join(clean_col.split())
+                
+                # Specific common renames to desired format
+                if clean_col.lower() == 'contact no.':
+                    new_columns_map[col] = 'Contact No.'
+                elif clean_col.lower() == 'contact no':
+                    new_columns_map[col] = 'Contact No.'
+                elif clean_col.lower() == 'nmims email':
+                    new_columns_map[col] = 'NMIMS Email ID'
+                elif clean_col.lower() == 'nmims email id':
+                    new_columns_map[col] = 'NMIMS Email ID'
+                elif clean_col.lower() == 'roll no.':
+                    new_columns_map[col] = 'Roll Number'
+                elif clean_col.lower() == 'roll no':
+                    new_columns_map[col] = 'Roll Number'
+                elif clean_col.lower() == 'sap id':
+                    new_columns_map[col] = 'SAP ID'
+                elif clean_col.lower() == 'name':
+                    new_columns_map[col] = 'NAME'
+                elif clean_col.lower() == 'branch':
+                    new_columns_map[col] = 'BRANCH'
+                elif clean_col.lower() == 'campus':
+                    new_columns_map[col] = 'CAMPUS'
+                elif clean_col.lower() == 'mip company':
+                    new_columns_map[col] = 'MIP Company'
+                elif clean_col.lower() == 'major':
+                    new_columns_map[col] = 'Major'
+                elif clean_col.lower() == 'div':
+                    new_columns_map[col] = 'Div'
+                else:
+                    new_columns_map[col] = col # Keep as is if no specific mapping
+            
+            # Apply the renaming
+            df.rename(columns=new_columns_map, inplace=True)
+
+            # Convert all object columns to string to avoid type issues (this needs to be after renaming)
             for col in df.columns:
                 if df[col].dtype == 'object':
                     df[col] = df[col].astype(str)
-            
-            # Standardize column names for MBA.Tech '25
-            if batch == "MBA.Tech '25":
-                column_mapping = {
-                    'NMIMS Email': 'NMIMS Email ID',
-                    'ROLL NO.': 'Roll Number'
-                }
-                df.rename(columns=column_mapping, inplace=True)
-            
-            # Standardize column names for MBA.Tech '26
-            if batch == "MBA.Tech '26":
-                column_mapping = {
-                    'CONTACT NO.': 'Contact No.',
-                    'NMIMS EMAIL ID': 'NMIMS Email ID',
-                    'ROLL NO.': 'Roll Number'
-                }
-                df.rename(columns=column_mapping, inplace=True)
             
             return df
         else:
@@ -2016,7 +2041,8 @@ if batch:
                     "Major-Company Analysis",
                     "Major-Subject Analysis",
                     "Subject Analysis",
-                    "Company Relationships"
+                    "Company Relationships",
+                    "Contact Information Analysis" # New tab
                 ])
                 
                 with tabs[0]:
@@ -2046,6 +2072,9 @@ if batch:
                 
                 with tabs[5]:
                     create_company_relationship_analysis(filtered_df)
+                
+                with tabs[6]: # New tab content
+                    create_contact_info_analysis(filtered_df)
         else:
             # Convert columns to string type and handle NaN values
             columns_to_process = {
