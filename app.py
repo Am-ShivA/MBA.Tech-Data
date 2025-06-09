@@ -2247,7 +2247,7 @@ st.markdown(f"""
         
         .sphere-container {{
             position: fixed;
-            bottom: 20px;
+            top: 20px;
             right: 30px;
             width: 45px;
             height: 45px;
@@ -2305,7 +2305,7 @@ st.markdown(f"""
         
         .tooltip {{
             position: absolute;
-            bottom: 55px;
+            top: 55px;
             right: 0;
             background: #b5aca7;
             color: #000000;
