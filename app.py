@@ -8,6 +8,7 @@ import numpy as np
 import base64
 from PIL import Image
 import io
+import sqlite3
 
 # Set page configuration
 st.set_page_config(
@@ -278,68 +279,32 @@ batch = st.sidebar.selectbox(
 
 # Function to load data based on batch selection
 def load_batch_data(batch):
-    try:
-        if batch == "MBA.Tech '25":
-            file_path = "MBA.Tech 25.xlsx"
-        else:  # MBA.Tech '26
-            file_path = "MBA.Tech 26.xlsx"
-        
-        if os.path.exists(file_path):
-            df = pd.read_excel(file_path)
-            
-            # Robust column name standardization (apply to all dataframes regardless of batch)
-            new_columns_map = {}
-            for col in df.columns:
-                # Strip leading/trailing whitespace and normalize case
-                clean_col = col.strip()
-                # Replace multiple spaces with single space
-                clean_col = ' '.join(clean_col.split())
-                
-                # Specific common renames to desired format
-                if clean_col.lower() == 'contact no.':
-                    new_columns_map[col] = 'Contact No.'
-                elif clean_col.lower() == 'contact no':
-                    new_columns_map[col] = 'Contact No.'
-                elif clean_col.lower() == 'nmims email':
-                    new_columns_map[col] = 'NMIMS Email ID'
-                elif clean_col.lower() == 'nmims email id':
-                    new_columns_map[col] = 'NMIMS Email ID'
-                elif clean_col.lower() == 'roll no.':
-                    new_columns_map[col] = 'Roll Number'
-                elif clean_col.lower() == 'roll no':
-                    new_columns_map[col] = 'Roll Number'
-                elif clean_col.lower() == 'sap id':
-                    new_columns_map[col] = 'SAP ID'
-                elif clean_col.lower() == 'name':
-                    new_columns_map[col] = 'NAME'
-                elif clean_col.lower() == 'branch':
-                    new_columns_map[col] = 'BRANCH'
-                elif clean_col.lower() == 'campus':
-                    new_columns_map[col] = 'CAMPUS'
-                elif clean_col.lower() == 'mip company':
-                    new_columns_map[col] = 'MIP Company'
-                elif clean_col.lower() == 'major':
-                    new_columns_map[col] = 'Major'
-                elif clean_col.lower() == 'div':
-                    new_columns_map[col] = 'Div'
-                else:
-                    new_columns_map[col] = col # Keep as is if no specific mapping
-            
-            # Apply the renaming
-            df.rename(columns=new_columns_map, inplace=True)
+    """Load data for a specific batch from SQLite database"""
+    conn = sqlite3.connect('mba_tech_data.db')
+    
+    # Map batch names to table names
+    batch_to_table = {
+        'MBA.Tech 23': 'mba_tech_23',
+        'MBA.Tech 24': 'mba_tech_24',
+        'MBA.Tech 25': 'mba_tech_25'
+    }
+    
+    # Read data from the appropriate table
+    query = f"SELECT * FROM {batch_to_table[batch]}"
+    df = pd.read_sql_query(query, conn)
+    
+    # Standardize column names
+    df.columns = [col.strip().replace('_', ' ').title() for col in df.columns]
+    
+    conn.close()
+    return df
 
-            # Convert all object columns to string to avoid type issues (this needs to be after renaming)
-            for col in df.columns:
-                if df[col].dtype == 'object':
-                    df[col] = df[col].astype(str)
-            
-            return df
-        else:
-            st.error(f"File not found: {file_path}")
-            return None
-    except Exception as e:
-        st.error(f"Error loading file: {str(e)}")
-        return None
+def load_all_data():
+    """Load all batch data from SQLite database"""
+    conn = sqlite3.connect('mba_tech_data.db')
+    df = pd.read_sql_query("SELECT * FROM all_batches", conn)
+    conn.close()
+    return df
 
 # Function to create select all widget
 def multiselect_with_select_all(label, options, key):
