@@ -288,6 +288,15 @@ def load_batch_data(batch):
                 if df[col].dtype == 'object':
                     df[col] = df[col].astype(str)
             
+            # Standardize column names for MBA.Tech '25
+            if batch == "MBA.Tech '25":
+                column_mapping = {
+                    'CONTACT NO.': 'Contact No.',
+                    'NMIMS EMAIL ID': 'NMIMS Email ID',
+                    'ROLL NO.': 'Roll Number'
+                }
+                df.rename(columns=column_mapping, inplace=True)
+            
             # Standardize column names for MBA.Tech '26
             if batch == "MBA.Tech '26":
                 column_mapping = {
@@ -1836,6 +1845,8 @@ if batch:
             df["CAMPUS"] = df["CAMPUS"].fillna("Not Assigned").astype(str)
             df["Major"] = df["Major"].fillna("Not Assigned").astype(str)
             df["MIP Company"] = df["MIP Company"].fillna("Not Assigned").astype(str)
+            df["Contact No."] = df["Contact No."].fillna("Not Assigned").astype(str)
+            df["NMIMS Email ID"] = df["NMIMS Email ID"].fillna("Not Assigned").astype(str)
             
             # Add filters to sidebar
             st.sidebar.write("### Filters")
@@ -1877,6 +1888,18 @@ if batch:
             name_filter = st.sidebar.text_input(
                 "Name (Enter to search)",
                 key="name_filter"
+            )
+            
+            # Contact Number filter
+            contact_filter = st.sidebar.text_input(
+                "Contact No. (Enter to search)",
+                key="contact_filter"
+            )
+            
+            # NMIMS Email ID filter
+            email_filter = st.sidebar.text_input(
+                "NMIMS Email ID (Enter to search)",
+                key="email_filter"
             )
             
             # MIP Company filter with select all
@@ -1936,6 +1959,10 @@ if batch:
                 mask &= df["SAP ID"].astype(str).str.lower().isin(sap_ids)
             if name_filter:
                 mask &= df["NAME"].str.lower().str.contains(name_filter.lower(), na=False)
+            if contact_filter:
+                mask &= df["Contact No."].astype(str).str.lower().str.contains(contact_filter.lower(), na=False)
+            if email_filter:
+                mask &= df["NMIMS Email ID"].str.lower().str.contains(email_filter.lower(), na=False)
             if mip_filter:
                 mask &= df["MIP Company"].isin(mip_filter)
             if major_filter:
