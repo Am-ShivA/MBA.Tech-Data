@@ -1,10 +1,21 @@
 import pandas as pd
 import sqlite3
 import os
+import tempfile
+
+def get_db_path():
+    """Get the database path, using a temporary directory in Streamlit Cloud"""
+    if os.path.exists('mba_tech_data.db'):
+        return 'mba_tech_data.db'
+    else:
+        # In Streamlit Cloud, use a temporary directory
+        temp_dir = tempfile.gettempdir()
+        return os.path.join(temp_dir, 'mba_tech_data.db')
 
 def create_database():
     # Create a new SQLite database
-    conn = sqlite3.connect('mba_tech_data.db')
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     # Read Excel files
@@ -38,7 +49,7 @@ def create_database():
 
     conn.commit()
     conn.close()
-    print("Database creation completed!")
+    print(f"Database creation completed! Database location: {db_path}")
 
 if __name__ == "__main__":
     create_database() 

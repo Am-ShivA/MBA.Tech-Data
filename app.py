@@ -9,6 +9,7 @@ import base64
 from PIL import Image
 import io
 import sqlite3
+import tempfile
 
 # Set page configuration
 st.set_page_config(
@@ -277,10 +278,19 @@ batch = st.sidebar.selectbox(
     ["MBA.Tech '25", "MBA.Tech '26"]
 )
 
+def get_db_path():
+    """Get the database path, using a temporary directory in Streamlit Cloud"""
+    if os.path.exists('mba_tech_data.db'):
+        return 'mba_tech_data.db'
+    else:
+        # In Streamlit Cloud, use a temporary directory
+        temp_dir = tempfile.gettempdir()
+        return os.path.join(temp_dir, 'mba_tech_data.db')
+
 # Function to load data based on batch selection
 def load_batch_data(batch):
     """Load data for a specific batch from SQLite database"""
-    conn = sqlite3.connect('mba_tech_data.db')
+    conn = sqlite3.connect(get_db_path())
     
     # Map batch names to table names
     batch_to_table = {
@@ -301,7 +311,7 @@ def load_batch_data(batch):
 
 def load_all_data():
     """Load all batch data from SQLite database"""
-    conn = sqlite3.connect('mba_tech_data.db')
+    conn = sqlite3.connect(get_db_path())
     df = pd.read_sql_query("SELECT * FROM all_batches", conn)
     conn.close()
     return df
